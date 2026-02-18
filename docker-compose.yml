@@ -1,0 +1,15 @@
+services:
+  elastic-security-mcp:
+    build: .
+    image: elastic-security-mcp
+    ports:
+      - "8000:8000"
+    environment:
+      - KIBANA_URL=${KIBANA_URL}
+      - ELASTIC_API_KEY=${ELASTIC_API_KEY}
+      # Optional: Basic Auth if API Key is not used
+      # - ELASTIC_USERNAME=${ELASTIC_USERNAME}
+      # - ELASTIC_PASSWORD=${ELASTIC_PASSWORD}
+      # MCP Authentication
+      - MCP_AUTH_TOKEN=${MCP_AUTH_TOKEN:-my-secret-token}
+    command: ["--transport", "streamable-http", "--port", "8000", "--host", "0.0.0.0", "--auth-token", "${MCP_AUTH_TOKEN:-my-secret-token}"]

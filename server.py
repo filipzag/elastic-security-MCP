@@ -84,12 +84,12 @@ def _list_rules(limit: int = 20, page: int = 1, filter: str = None):
     return _make_request("GET", endpoint, params=params)
 
 @mcp.tool()
-def list_rules(filter: str = None):
+def list_rules(filter: str):
     """
     List all detection rules from Elastic Security. This will automatically paginate and return all matching rules.
     
     Args:
-        filter: Optional KQL string to filter rules. The available fields for this filter include:
+        filter: KQL string to filter rules. The available fields for this filter include:
                 - alert.attributes.name
                 - alert.attributes.enabled
                 - alert.attributes.tags

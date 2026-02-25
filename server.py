@@ -83,10 +83,33 @@ def _list_rules(limit: int = 20, page: int = 1, filter: str = None):
         params["filter"] = filter
     return _make_request("GET", endpoint, params=params)
 
+def _summarize_rule(rule: dict) -> dict:
+    """Extract a compact summary from a full detection rule."""
+    # Extract MITRE TTPs
+    ttps = []
+    for threat in rule.get("threat", []):
+        tactic = threat.get("tactic", {})
+        for technique in threat.get("technique", []):
+            for sub in technique.get("subtechnique", []):
+                ttps.append(f"{sub.get('id', '')} ({sub.get('name', '')})")
+            if not technique.get("subtechnique"):
+                ttps.append(f"{technique.get('id', '')} ({technique.get('name', '')})")
+        if not threat.get("technique") and tactic:
+            ttps.append(f"{tactic.get('id', '')} ({tactic.get('name', '')})")
+
+    return {
+        "id": rule.get("id"),
+        "name": rule.get("name"),
+        "mitre_ttps": ttps or None,
+        "log_source": rule.get("index", rule.get("data_view_id")),
+        "query_type": rule.get("type"),
+    }
+
 @mcp.tool()
 def list_rules(filter: str):
     """
-    List all detection rules from Elastic Security. This will automatically paginate and return all matching rules.
+    List all detection rules from Elastic Security. Returns a compact summary for each rule
+    (id, name, MITRE TTPs, log source, and query type). Use get_rule to fetch full details.
     
     Args:
         filter: KQL string to filter rules. The available fields for this filter include:
@@ -111,7 +134,7 @@ def list_rules(filter: str):
             return response
             
         data = response.get("data", [])
-        all_rules.extend(data)
+        all_rules.extend([_summarize_rule(r) for r in data])
         
         total = response.get("total", 0)
         
@@ -122,6 +145,18 @@ def list_rules(filter: str):
         page += 1
         
     return {"data": all_rules, "total": len(all_rules)}
+
+@mcp.tool()
+def get_rule(rule_id: str):
+    """
+    Get the full details of a single detection rule by its ID.
+    
+    Args:
+        rule_id: The unique identifier of the rule (id).
+    """
+    endpoint = "/api/detection_engine/rules"
+    params = {"id": rule_id}
+    return _make_request("GET", endpoint, params=params)
 
 def _upload_rule(rule_content: str):
     try:

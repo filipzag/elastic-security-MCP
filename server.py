@@ -73,14 +73,12 @@ def _make_request(method, endpoint, json_data=None, params=None):
         return {"error": str(e)}
 
 
-def _list_rules(limit: int = 20, page: int = 1, filter: str = None):
+def _list_rules(limit: int = 20, page: int = 1):
     endpoint = "/api/detection_engine/rules/_find"
     params = {
         "per_page": limit,
         "page": page
     }
-    if filter:
-        params["filter"] = filter
     return _make_request("GET", endpoint, params=params)
 
 def _summarize_rule(rule: dict) -> dict:
@@ -106,27 +104,20 @@ def _summarize_rule(rule: dict) -> dict:
     }
 
 @mcp.tool()
-def list_rules(filter: str):
+def list_rules(filter: str = ""):
     """
     List all detection rules from Elastic Security. Returns a compact summary for each rule
     (id, name, MITRE TTPs, log source, and query type). Use get_rule to fetch full details.
     
     Args:
-        filter: KQL string to filter rules. The available fields for this filter include:
-                - alert.attributes.name
-                - alert.attributes.enabled
-                - alert.attributes.tags
-                - alert.attributes.createdBy
-                - alert.attributes.interval
-                - alert.attributes.updatedBy
-                Example: 'alert.attributes.enabled: true' or 'alert.attributes.name: "My Rule"'
+        filter: Optional keyword string to filter rules by matching against any returned JSON fields.
     """
     all_rules = []
     page = 1
     limit = 100  # Fetch 100 per page to minimize API calls
     
     while True:
-        response = _list_rules(limit, page, filter)
+        response = _list_rules(limit, page)
         
         if "error" in response:
             if all_rules:
@@ -134,12 +125,19 @@ def list_rules(filter: str):
             return response
             
         data = response.get("data", [])
-        all_rules.extend([_summarize_rule(r) for r in data])
+        
+        for r in data:
+            summary = _summarize_rule(r)
+            if filter:
+                if filter.lower() in json.dumps(r).lower():
+                    all_rules.append(summary)
+            else:
+                all_rules.append(summary)
         
         total = response.get("total", 0)
         
         # Stop fetching if no more data is returned or we've reached the total
-        if not data or len(all_rules) >= total:
+        if not data or ((page - 1) * limit + len(data)) >= total:
             break
             
         page += 1

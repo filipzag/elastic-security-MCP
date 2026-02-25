@@ -4,7 +4,8 @@ An MCP server implementation for Elastic Security, allowing creation, enabling, 
 
 ## Features
 
-- **List Rules**: Retrieve detection rules with automatic pagination and KQL filtering.
+- **List Rules**: Retrieve detection rule summaries (id, name, MITRE TTPs, log source, query type) with automatic pagination and KQL filtering.
+- **Get Rule**: Fetch the full details of a single detection rule by ID.
 - **Upload Rule**: Create or update detection rules using JSON definitions.
 - **Enable Rule**: Enable a specific detection rule.
 - **Disable Rule**: Disable a specific detection rule.

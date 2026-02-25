@@ -175,6 +175,108 @@ def disable_rule(rule_id: str):
     """
     return _disable_rule(rule_id)
 
+@mcp.tool()
+def get_detection_template() -> dict:
+    """
+    Returns a predefined Elastic detection rule JSON template for use.
+    The template contains default tags, schedule, params, threat mapping, and an EQL query example.
+    """
+    return {
+        "id": "98ec5b9d-e9f6-4f6a-a159-a37e9ba86cef",
+        "enabled": True,
+        "name": "APT28 Linux Timestomping via Touch Command",
+        "tags": [
+            "Domain: Endpoint",
+            "OS: Linux",
+            "Use Case: Threat Detection",
+            "Tactic: Defense Evasion",
+            "Data Source: Elastic Defend",
+            "Threat: APT28"
+        ],
+        "rule_type_id": "siem.eqlRule",
+        "consumer": "siem",
+        "schedule": {"interval": "5m"},
+        "actions": [],
+        "params": {
+            "author": ["AI Detection Engineering"],
+            "description": "Detects potential timestomping activity on Linux systems. APT28 (Forest Blizzard/Fancy Bear) is known to use the touch command with -t, -r, or -d flags to alter file timestamps, making malicious files appear older or match legitimate system files. This technique (T1070.006) is used to evade forensic analysis and timeline reconstruction.",
+            "note": "## Triage and Analysis\n\nTimestomping is a defense evasion technique where adversaries modify file timestamps. APT28 uses this on compromised Linux hosts after deploying tools like Drovorub or web shells.\n\n### Key Investigation Steps\n1. Examine touch command arguments for suspicious timestamps.\n2. Identify the target file path.\n3. Check parent process chain.\n4. Look for other APT28 indicators.\n5. Check user context.",
+            "falsePositives": [
+                "Build systems (make, cmake) frequently use touch to manage file timestamps.",
+                "Package managers (dpkg, rpm, yum, apt-get) may use touch during installation.",
+                "Configuration management tools (Ansible, Puppet, Chef, Salt) may touch files.",
+                "EC2 network configuration scripts that use touch on systemd network files."
+            ],
+            "from": "now-6m",
+            "ruleId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+            "immutable": False,
+            "license": "Elastic License v2",
+            "outputIndex": "",
+            "maxSignals": 100,
+            "riskScore": 47,
+            "riskScoreMapping": [],
+            "severity": "medium",
+            "severityMapping": [],
+            "timestampOverride": "event.ingested",
+            "threat": [
+                {
+                    "framework": "MITRE ATT&CK",
+                    "tactic": {
+                        "id": "TA0005",
+                        "name": "Defense Evasion",
+                        "reference": "https://attack.mitre.org/tactics/TA0005/"
+                    },
+                    "technique": [
+                        {
+                            "id": "T1070",
+                            "name": "Indicator Removal",
+                            "reference": "https://attack.mitre.org/techniques/T1070/",
+                            "subtechnique": [
+                                {
+                                    "id": "T1070.006",
+                                    "name": "Timestomp",
+                                    "reference": "https://attack.mitre.org/techniques/T1070/006/"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ],
+            "to": "now",
+            "references": [],
+            "version": 1,
+            "exceptionsList": [],
+            "relatedIntegrations": [],
+            "requiredFields": [],
+            "setup": "",
+            "type": "eql",
+            "language": "eql",
+            "index": ["logs-endpoint.events.process-*"],
+            "query": "process where host.os.type == \"linux\" and event.type == \"start\" and event.action == \"exec\" and process.name == \"touch\" and process.args in (\"-t\", \"-r\", \"-d\") and not process.parent.executable in (\"/usr/bin/make\", \"/usr/bin/cmake\", \"/usr/bin/dpkg\", \"/usr/bin/rpm\", \"/usr/bin/yum\", \"/usr/bin/apt-get\", \"/usr/bin/dnf\", \"/usr/bin/pip\", \"/usr/bin/pip3\", \"/usr/bin/conda\", \"/usr/lib/systemd/systemd\", \"/usr/bin/ansible-playbook\", \"/usr/bin/puppet\", \"/usr/bin/chef-client\", \"/opt/chef/bin/chef-client\", \"/usr/bin/salt-minion\") and not process.parent.name in (\"make\", \"cmake\", \"dpkg\", \"rpm\", \"yum\", \"apt-get\", \"dnf\") and not process.command_line like \"*ec2net_alias*\""
+        },
+        "mapped_params": {
+            "risk_score": 47,
+            "severity": "40-medium"
+        },
+        "scheduled_task_id": "98ec5b9d-e9f6-4f6a-a159-a37e9ba86cef",
+        "created_by": "2637252352",
+        "updated_by": "2637252352",
+        "created_at": "2026-02-24T16:24:09.348Z",
+        "updated_at": "2026-02-24T16:24:09.348Z",
+        "api_key_owner": "2637252352",
+        "api_key_created_by_user": True,
+        "throttle": None,
+        "mute_all": False,
+        "notify_when": None,
+        "muted_alert_ids": [],
+        "execution_status": {
+            "status": "pending",
+            "last_execution_date": "2026-02-24T16:24:09.348Z"
+        },
+        "revision": 0,
+        "running": False
+    }
+
 import argparse
 import logging
 from starlette.middleware.base import BaseHTTPMiddleware

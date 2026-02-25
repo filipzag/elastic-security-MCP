@@ -1,13 +1,14 @@
 # Elastic Security MCP Server
 
-An MCP server implementation for Elastic Security, allowing creation, enabling, disabling, and listing of detection rules.
+An MCP server implementation for Elastic Security, allowing creation, enabling, disabling, listing, and templating of detection rules.
 
 ## Features
 
-- **List Rules**: Retrieve detection rules with pagination support.
+- **List Rules**: Retrieve detection rules with automatic pagination and KQL filtering.
 - **Upload Rule**: Create or update detection rules using JSON definitions.
 - **Enable Rule**: Enable a specific detection rule.
 - **Disable Rule**: Disable a specific detection rule.
+- **Get Detection Template**: Returns a predefined EQL detection rule JSON template (APT28 Linux Timestomping) for use as a starting point when creating new rules.
 
 ## Prerequisites
 

@@ -110,7 +110,9 @@ def list_rules(filter: str = ""):
     (id, name, MITRE TTPs, log source, and query type). Use get_rule to fetch full details.
     
     Args:
-        filter: Optional keyword string to filter rules by matching against any returned JSON fields.
+        filter: Optional keyword string to filter rules. The filter performs a case-insensitive 
+                text match against the returned JSON objects (including fields like name, id, tags, 
+                description, query, etc.) rather than a native Kibana KQL query.
     """
     all_rules = []
     page = 1

@@ -73,24 +73,55 @@ def _make_request(method, endpoint, json_data=None, params=None):
         return {"error": str(e)}
 
 
-def _list_rules(limit: int = 20, page: int = 1):
-    endpoint = "/api/alerting/rules/_find"
+def _list_rules(limit: int = 20, page: int = 1, filter: str = None):
+    endpoint = "/api/detection_engine/rules/_find"
     params = {
         "per_page": limit,
         "page": page
     }
+    if filter:
+        params["filter"] = filter
     return _make_request("GET", endpoint, params=params)
 
 @mcp.tool()
-def list_rules(limit: int = 20, page: int = 1):
+def list_rules(filter: str = None):
     """
-    List detection rules from Elastic Security.
+    List all detection rules from Elastic Security. This will automatically paginate and return all matching rules.
     
     Args:
-        limit: The number of rules to return per page. Default 20.
-        page: The page number to return. Default 1.
+        filter: Optional KQL string to filter rules. The available fields for this filter include:
+                - alert.attributes.name
+                - alert.attributes.enabled
+                - alert.attributes.tags
+                - alert.attributes.createdBy
+                - alert.attributes.interval
+                - alert.attributes.updatedBy
+                Example: 'alert.attributes.enabled: true' or 'alert.attributes.name: "My Rule"'
     """
-    return _list_rules(limit, page)
+    all_rules = []
+    page = 1
+    limit = 100  # Fetch 100 per page to minimize API calls
+    
+    while True:
+        response = _list_rules(limit, page, filter)
+        
+        if "error" in response:
+            if all_rules:
+                return {"data": all_rules, "error": response["error"], "warning": "Failed while fetching subsequent pages"}
+            return response
+            
+        data = response.get("data", [])
+        all_rules.extend(data)
+        
+        total = response.get("total", 0)
+        
+        # Stop fetching if no more data is returned or we've reached the total
+        if not data or len(all_rules) >= total:
+            break
+            
+        page += 1
+        
+    return {"data": all_rules, "total": len(all_rules)}
 
 def _upload_rule(rule_content: str):
     try:
@@ -98,27 +129,26 @@ def _upload_rule(rule_content: str):
     except json.JSONDecodeError as e:
         return {"error": f"Invalid JSON content: {str(e)}"}
         
+    endpoint = "/api/detection_engine/rules"
     rule_id = data.get("id")
-    if rule_id:
-        endpoint = f"/api/alerting/rule/{rule_id}"
-    else:
-        endpoint = "/api/alerting/rule"
+    method = "PUT" if rule_id else "POST"
         
-    return _make_request("POST", endpoint, json_data=data)
+    return _make_request(method, endpoint, json_data=data)
 
 @mcp.tool()
 def upload_rule(rule_content: str):
     """
-    Upload (create) a new detection rule.
+    Upload (create or update) a new detection rule.
     
     Args:
-        rule_content: The JSON string content of the rule to create.
+        rule_content: The JSON string content of the rule to create or update.
     """
     return _upload_rule(rule_content)
 
 def _enable_rule(rule_id: str):
-    endpoint = f"/api/alerting/rule/{rule_id}/_enable"
-    return _make_request("POST", endpoint)
+    endpoint = "/api/detection_engine/rules"
+    data = {"id": rule_id, "enabled": True}
+    return _make_request("PATCH", endpoint, json_data=data)
 
 @mcp.tool()
 def enable_rule(rule_id: str):
@@ -126,13 +156,14 @@ def enable_rule(rule_id: str):
     Enable a detection rule by its ID.
     
     Args:
-        rule_id: The unique identifier of the rule.
+        rule_id: The unique identifier of the rule (id).
     """
     return _enable_rule(rule_id)
 
 def _disable_rule(rule_id: str):
-    endpoint = f"/api/alerting/rule/{rule_id}/_disable"
-    return _make_request("POST", endpoint)
+    endpoint = "/api/detection_engine/rules"
+    data = {"id": rule_id, "enabled": False}
+    return _make_request("PATCH", endpoint, json_data=data)
 
 @mcp.tool()
 def disable_rule(rule_id: str):
@@ -140,7 +171,7 @@ def disable_rule(rule_id: str):
     Disable a detection rule by its ID.
     
     Args:
-        rule_id: The unique identifier of the rule.
+        rule_id: The unique identifier of the rule (id).
     """
     return _disable_rule(rule_id)
 
